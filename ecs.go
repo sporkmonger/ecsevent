@@ -3,23 +3,7 @@ package slog
 import (
 	"fmt"
 	"reflect"
-	"time"
-
-	"github.com/rs/zerolog"
 )
-
-func init() {
-	zerologFieldInit()
-}
-
-func zerologFieldInit() {
-	zerolog.LevelFieldName = FieldLogLevel
-	zerolog.MessageFieldName = FieldMessage
-	zerolog.ErrorFieldName = FieldErrorMessage
-	zerolog.TimestampFieldName = FieldTimestamp
-	zerolog.TimeFieldFormat = time.RFC3339Nano
-	// Do not use caller for now.
-}
 
 // Field name constants for the Elastic Common Schema.
 // See: https://www.elastic.co/guide/en/ecs/current/ecs-field-reference.html

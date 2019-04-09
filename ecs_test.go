@@ -7,19 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 )
-
-func TestInit(t *testing.T) {
-	assert := assert.New(t)
-
-	zerologFieldInit()
-	assert.Equal(FieldLogLevel, zerolog.LevelFieldName)
-	assert.Equal(FieldMessage, zerolog.MessageFieldName)
-	assert.Equal(FieldErrorMessage, zerolog.ErrorFieldName)
-	assert.Equal(FieldTimestamp, zerolog.TimestampFieldName)
-}
 
 func TestTypeCheck(t *testing.T) {
 	tcs := []struct {
