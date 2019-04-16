@@ -6,15 +6,15 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/sporkmonger/ecslog"
+	"github.com/sporkmonger/ecsevent"
 )
 
 func TestInit(t *testing.T) {
 	assert := assert.New(t)
 
 	zerologFieldInit()
-	assert.Equal(ecslog.FieldLogLevel, zerolog.LevelFieldName)
-	assert.Equal(ecslog.FieldMessage, zerolog.MessageFieldName)
-	assert.Equal(ecslog.FieldErrorMessage, zerolog.ErrorFieldName)
-	assert.Equal(ecslog.FieldTimestamp, zerolog.TimestampFieldName)
+	assert.Equal(ecsevent.FieldLogLevel, zerolog.LevelFieldName)
+	assert.Equal(ecsevent.FieldMessage, zerolog.MessageFieldName)
+	assert.Equal(ecsevent.FieldErrorMessage, zerolog.ErrorFieldName)
+	assert.Equal(ecsevent.FieldTimestamp, zerolog.TimestampFieldName)
 }

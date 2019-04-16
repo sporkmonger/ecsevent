@@ -1,4 +1,4 @@
-# ECSLog
+# ECSEvent
 
 HTTP observability middleware using the Elastic Common Schema.
 
@@ -6,10 +6,10 @@ HTTP observability middleware using the Elastic Common Schema.
 
 ----
 
-ECSLog provides middleware and utility functions for logging in the ECS format,
+ECSEvent provides middleware and utility functions for logging in the ECS format,
 particularly for HTTP services.
 
-[GoDoc]: https://godoc.org/github.com/sporkmonger/ecslog
-[GoDoc Widget]: https://godoc.org/github.com/sporkmonger/ecslog?status.svg
-[Build]: https://circleci.com/gh/sporkmonger/ecslog
-[Build Widget]: https://circleci.com/gh/sporkmonger/ecslog.svg?style=shield
+[GoDoc]: https://godoc.org/github.com/sporkmonger/ecsevent
+[GoDoc Widget]: https://godoc.org/github.com/sporkmonger/ecsevent?status.svg
+[Build]: https://circleci.com/gh/sporkmonger/ecsevent
+[Build Widget]: https://circleci.com/gh/sporkmonger/ecsevent.svg?style=shield
