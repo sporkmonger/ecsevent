@@ -5,7 +5,7 @@ import (
 
 	"github.com/rs/zerolog"
 
-	"github.com/sporkmonger/ecslog"
+	"github.com/sporkmonger/ecsevent"
 )
 
 func init() {
@@ -13,10 +13,10 @@ func init() {
 }
 
 func zerologFieldInit() {
-	zerolog.LevelFieldName = ecslog.FieldLogLevel
-	zerolog.MessageFieldName = ecslog.FieldMessage
-	zerolog.ErrorFieldName = ecslog.FieldErrorMessage
-	zerolog.TimestampFieldName = ecslog.FieldTimestamp
+	zerolog.LevelFieldName = ecsevent.FieldLogLevel
+	zerolog.MessageFieldName = ecsevent.FieldMessage
+	zerolog.ErrorFieldName = ecsevent.FieldErrorMessage
+	zerolog.TimestampFieldName = ecsevent.FieldTimestamp
 	zerolog.TimeFieldFormat = time.RFC3339Nano
 	// Do not use caller for now.
 }

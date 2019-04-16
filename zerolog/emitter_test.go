@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/sporkmonger/ecslog"
+	"github.com/sporkmonger/ecsevent"
 
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
@@ -25,20 +25,20 @@ func TestEmitter(t *testing.T) {
 		{
 			"minimal event",
 			map[string]interface{}{
-				ecslog.FieldMessage: "hello world",
+				ecsevent.FieldMessage: "hello world",
 			},
 			`{"message":"hello world"}`,
 		},
 		{
 			"http event",
 			map[string]interface{}{
-				ecslog.FieldHTTPRequestMethod:      "GET",
-				ecslog.FieldHTTPRequestReferrer:    "http://example.com/",
-				ecslog.FieldHTTPResponseStatusCode: 200,
-				ecslog.FieldHTTPVersion:            "1.1",
-				ecslog.FieldSourceIP:               "127.0.0.1",
-				ecslog.FieldURLDomain:              "example.com",
-				ecslog.FieldURLFull:                "http://example.com/hello",
+				ecsevent.FieldHTTPRequestMethod:      "GET",
+				ecsevent.FieldHTTPRequestReferrer:    "http://example.com/",
+				ecsevent.FieldHTTPResponseStatusCode: 200,
+				ecsevent.FieldHTTPVersion:            "1.1",
+				ecsevent.FieldSourceIP:               "127.0.0.1",
+				ecsevent.FieldURLDomain:              "example.com",
+				ecsevent.FieldURLFull:                "http://example.com/hello",
 			},
 			`{"http":{"request":{"method":"GET","referrer":"http://example.com/"},"response":{"status_code":200},"version":"1.1"},"source":{"ip":"127.0.0.1"},"url":{"domain":"example.com","full":"http://example.com/hello"}}`,
 		},

@@ -1,4 +1,4 @@
-package ecslog
+package ecsevent
 
 import (
 	"fmt"
