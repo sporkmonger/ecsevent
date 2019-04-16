@@ -5,7 +5,8 @@ import (
 )
 
 // SpanMonitor is a short-lived monitor with additional contextual fields.
-// It's typically used in conjunction with a Context.
+// It's typically used in conjunction with a Context. It relies on a parent
+// Monitor to emit.
 type SpanMonitor struct {
 	// SubeventsField is the field that all subevents will be recorded under.
 	// If no SubeventsField is set, subevents will be recorded to emitters as
@@ -32,10 +33,6 @@ var (
 	_ Monitor = &SpanMonitor{}
 )
 
-func (sm *SpanMonitor) Disabled() bool {
-	return sm.parent.Disabled()
-}
-
 func (sm *SpanMonitor) Fields() map[string]interface{} {
 	return sm.fields
 }
@@ -45,7 +42,7 @@ func (sm SpanMonitor) Parent() Monitor {
 	return sm.parent
 }
 
-// UpdateFields updates the Sublogger's Field set.
+// UpdateFields updates the SpanMonitor's field set.
 func (sm SpanMonitor) UpdateFields(fields map[string]interface{}) {
 	if sm.fields == nil {
 		sm.fields = make(map[string]interface{})
@@ -56,13 +53,19 @@ func (sm SpanMonitor) UpdateFields(fields map[string]interface{}) {
 }
 
 // Record takes a series of fields and records an event.
-func (sm SpanMonitor) Record(fields map[string]interface{}) {
+func (sm SpanMonitor) Record(event map[string]interface{}) {
 	if sm.fields == nil {
 		sm.fields = make(map[string]interface{})
 	}
-	for k, v := range fields {
-		sm.fields[k] = v
+	merged := make(map[string]interface{})
+	for k, v := range sm.fields {
+		merged[k] = v
 	}
+	for k, v := range event {
+		merged[k] = v
+	}
+	sm.subevents = append(sm.subevents, merged)
+	// TODO: if configured to flush immediately, emit to parent, otherwise emit on Finish
 }
 
 func (sm SpanMonitor) Finish() {

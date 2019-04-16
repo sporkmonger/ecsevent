@@ -21,9 +21,6 @@ func NewContext(ctx context.Context, m Monitor) context.Context {
 			// Do not store same monitor.
 			return ctx
 		}
-	} else if m.Disabled() {
-		// Do not store disabled monitor.
-		return ctx
 	}
 	return context.WithValue(ctx, ctxKey{}, m)
 }
