@@ -25,9 +25,9 @@ func NewContext(ctx context.Context, m Monitor) context.Context {
 	return context.WithValue(ctx, ctxKey{}, m)
 }
 
-func FromContext(ctx context.Context) Monitor {
-	if l, ok := ctx.Value(ctxKey{}).(Monitor); ok {
-		return l
+func MonitorFromContext(ctx context.Context) Monitor {
+	if m, ok := ctx.Value(ctxKey{}).(Monitor); ok {
+		return m
 	}
 	return disabledMonitor
 }

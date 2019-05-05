@@ -1,6 +1,8 @@
 package ecsevent
 
 import (
+	"sync"
+
 	"github.com/opentracing/opentracing-go"
 )
 
@@ -24,6 +26,7 @@ type SpanMonitor struct {
 	// The opentracing span, if any, associated with this SpanMonitor.
 	span   opentracing.Span
 	parent Monitor
+	mu     *sync.RWMutex
 }
 
 var (
@@ -32,6 +35,16 @@ var (
 	// https://medium.com/@matryer/c167afed3aae
 	_ Monitor = &SpanMonitor{}
 )
+
+func NewSpanMonitorFromParent(m Monitor) *SpanMonitor {
+	return &SpanMonitor{
+		mu:             &sync.RWMutex{},
+		parent:         m,
+		fields:         make(map[string]interface{}),
+		subevents:      make([]map[string]interface{}, 0),
+		SubeventsField: FieldEventSubevents,
+	}
+}
 
 func (sm *SpanMonitor) Fields() map[string]interface{} {
 	return sm.fields
@@ -44,6 +57,8 @@ func (sm SpanMonitor) Parent() Monitor {
 
 // UpdateFields updates the SpanMonitor's field set.
 func (sm SpanMonitor) UpdateFields(fields map[string]interface{}) {
+	sm.mu.Lock()
+	defer sm.mu.Unlock()
 	if sm.fields == nil {
 		sm.fields = make(map[string]interface{})
 	}
@@ -55,16 +70,22 @@ func (sm SpanMonitor) UpdateFields(fields map[string]interface{}) {
 // Record takes a series of fields and records an event.
 func (sm SpanMonitor) Record(event map[string]interface{}) {
 	if sm.fields == nil {
+		sm.mu.Lock()
 		sm.fields = make(map[string]interface{})
+		sm.mu.Unlock()
 	}
 	merged := make(map[string]interface{})
+	sm.mu.RLock()
 	for k, v := range sm.fields {
 		merged[k] = v
 	}
+	sm.mu.RUnlock()
 	for k, v := range event {
 		merged[k] = v
 	}
+	sm.mu.Lock()
 	sm.subevents = append(sm.subevents, merged)
+	sm.mu.Unlock()
 	// TODO: if configured to flush immediately, emit to parent, otherwise emit on Finish
 }
 
@@ -75,4 +96,8 @@ func (sm SpanMonitor) Finish() {
 		opts := opentracing.FinishOptions{LogRecords: records}
 		sm.span.FinishWithOptions(opts)
 	}
+	sm.mu.Lock()
+	sm.fields[sm.SubeventsField] = sm.subevents
+	sm.mu.Unlock()
+	sm.parent.Record(sm.fields)
 }
