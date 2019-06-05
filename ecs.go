@@ -87,6 +87,7 @@ const (
 	FieldEventRiskScoreNorm           = "event.risk_score_norm"
 	FieldEventSeverity                = "event.severity"
 	FieldEventStart                   = "event.start"
+	FieldEventSubevents               = "event.subevents"
 	FieldEventTimezone                = "event.timezone"
 	FieldEventType                    = "event.type"
 	FieldFileCTime                    = "file.ctime"
