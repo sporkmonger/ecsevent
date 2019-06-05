@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 
 	"github.com/sporkmonger/ecsevent"
@@ -89,9 +90,17 @@ func NewHandler(monitor ecsevent.Monitor) func(http.Handler) http.Handler {
 				ecsevent.FieldECSVersion:           "1.0.1",
 			})
 			if r.RemoteAddr != "" {
+				components := strings.SplitN(r.RemoteAddr, ":", 2)
 				span.UpdateFields(map[string]interface{}{
-					ecsevent.FieldClientIP: r.RemoteAddr,
+					ecsevent.FieldClientIP: components[0],
 				})
+				if len(components) > 1 {
+					if port, err := strconv.Atoi(components[1]); err == nil {
+						span.UpdateFields(map[string]interface{}{
+							ecsevent.FieldClientPort: port,
+						})
+					}
+				}
 			}
 			if r.Host != "" {
 				span.UpdateFields(map[string]interface{}{
