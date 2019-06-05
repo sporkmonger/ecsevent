@@ -1,7 +1,9 @@
 package httpmw
 
 import (
+	"io"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/sporkmonger/ecsevent"
@@ -21,4 +23,67 @@ func TestNewHandlerParent(t *testing.T) {
 		}
 	}))
 	h.ServeHTTP(nil, &http.Request{})
+}
+
+type mockEmitter struct {
+	events []map[string]interface{}
+}
+
+func (me *mockEmitter) Emit(fields map[string]interface{}) {
+	me.events = append(me.events, fields)
+}
+
+func (me *mockEmitter) Events() []map[string]interface{} {
+	return me.events
+}
+
+func EmitToMock(mock *mockEmitter) ecsevent.MonitorOption {
+	return func(gm *ecsevent.GlobalMonitor) {
+		gm.AppendEmitter(mock)
+	}
+}
+
+func HealthCheckHandler(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json")
+
+	io.WriteString(w, `{"status": "ok"}`)
+}
+
+func TestHealthCheckHandler(t *testing.T) {
+	assert := assert.New(t)
+
+	mock := &mockEmitter{events: make([]map[string]interface{}, 0)}
+	monitor := ecsevent.New(EmitToMock(mock))
+	mh := NewHandler(monitor)
+
+	req, err := http.NewRequest("GET", "/health-check", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set("User-Agent", "go-test/1.0")
+
+	rr := httptest.NewRecorder()
+	handler := mh(http.HandlerFunc(HealthCheckHandler))
+
+	handler.ServeHTTP(rr, req)
+
+	assert.Equal(http.StatusOK, rr.Code)
+	assert.Equal(`{"status": "ok"}`, rr.Body.String())
+	assert.Len(mock.events, 1)
+	if len(mock.events) == 1 {
+		expectedEvent := map[string]interface{}{
+			"ecs.version":               "1.0.1",
+			"http.request.body.bytes":   int64(0),
+			"http.request.method":       "GET",
+			"http.response.body.bytes":  int64(16),
+			"http.response.status_code": 200,
+			"http.version":              "1.1",
+			"url.full":                  "/health-check",
+			"url.original":              "/health-check",
+			"url.path":                  "/health-check",
+			"user_agent.original":       "go-test/1.0",
+		}
+		assert.Equal(expectedEvent, mock.events[0])
+	}
 }

@@ -97,7 +97,9 @@ func (sm SpanMonitor) Finish() {
 		sm.span.FinishWithOptions(opts)
 	}
 	sm.mu.Lock()
-	sm.fields[sm.SubeventsField] = sm.subevents
+	if len(sm.subevents) > 0 {
+		sm.fields[sm.SubeventsField] = sm.subevents
+	}
 	sm.mu.Unlock()
 	sm.parent.Record(sm.fields)
 }

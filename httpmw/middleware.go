@@ -84,18 +84,35 @@ func NewHandler(monitor ecsevent.Monitor) func(http.Handler) http.Handler {
 			}
 			span.UpdateFields(map[string]interface{}{
 				ecsevent.FieldHTTPRequestMethod:    r.Method,
-				ecsevent.FieldHTTPRequestBodyBytes: r.ContentLength,
+				ecsevent.FieldHTTPRequestBodyBytes: int64(r.ContentLength),
 				ecsevent.FieldHTTPVersion:          fmt.Sprintf("%d.%d", r.ProtoMajor, r.ProtoMinor),
-				ecsevent.FieldURLOriginal:          r.RequestURI,
-				ecsevent.FieldURLDomain:            r.Host,
 				ecsevent.FieldECSVersion:           "1.0.1",
 			})
+			if r.RemoteAddr != "" {
+				span.UpdateFields(map[string]interface{}{
+					ecsevent.FieldClientIP: r.RemoteAddr,
+				})
+			}
+			if r.Host != "" {
+				span.UpdateFields(map[string]interface{}{
+					ecsevent.FieldURLDomain: r.Host,
+				})
+			}
 			if r.URL != nil {
 				span.UpdateFields(map[string]interface{}{
-					ecsevent.FieldURLPath:  r.URL.Path,
-					ecsevent.FieldURLQuery: r.URL.RawQuery,
-					ecsevent.FieldURLFull:  fullURL.String(),
+					ecsevent.FieldURLOriginal: r.URL.String(),
+					ecsevent.FieldURLFull:     fullURL.String(),
 				})
+				if r.URL.Path != "" {
+					span.UpdateFields(map[string]interface{}{
+						ecsevent.FieldURLPath: r.URL.Path,
+					})
+				}
+				if r.URL.RawQuery != "" {
+					span.UpdateFields(map[string]interface{}{
+						ecsevent.FieldURLQuery: r.URL.RawQuery,
+					})
+				}
 			}
 			if ref := r.Header.Get("Referer"); ref != "" {
 				span.UpdateFields(map[string]interface{}{
@@ -131,7 +148,7 @@ func NewHandler(monitor ecsevent.Monitor) func(http.Handler) http.Handler {
 			next.ServeHTTP(wrw, r)
 			span.UpdateFields(map[string]interface{}{
 				ecsevent.FieldHTTPResponseStatusCode: wrw.status,
-				ecsevent.FieldHTTPResponseBodyBytes:  wrw.size,
+				ecsevent.FieldHTTPResponseBodyBytes:  int64(wrw.size),
 			})
 			span.Finish()
 		})
