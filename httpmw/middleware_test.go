@@ -61,6 +61,7 @@ func TestHealthCheckHandler(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	req.RemoteAddr = "127.0.0.1:54321"
 	req.Header.Set("User-Agent", "go-test/1.0")
 
 	rr := httptest.NewRecorder()
@@ -74,6 +75,8 @@ func TestHealthCheckHandler(t *testing.T) {
 	if len(mock.events) == 1 {
 		expectedEvent := map[string]interface{}{
 			"ecs.version":               "1.0.1",
+			"client.ip":                 "127.0.0.1",
+			"client.port":               54321,
 			"http.request.body.bytes":   int64(0),
 			"http.request.method":       "GET",
 			"http.response.body.bytes":  int64(16),
