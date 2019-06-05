@@ -30,6 +30,7 @@ type GlobalMonitor struct {
 	fields   map[string]interface{}
 	emitters []*syncEmitter
 	tracer   opentracing.Tracer
+	nested   bool
 	// mu gates everything in this struct, including changes to the emitter
 	// list but not events being emitted by the emitters.
 	mu sync.Mutex
@@ -46,12 +47,21 @@ var (
 // MonitorOption configure a GlobalMonitor as it's being initialized.
 type MonitorOption func(*GlobalMonitor)
 
+// NestEvents controls whether event fields should be nested or left
+// in dot-notated format.
+func NestEvents(nested bool) MonitorOption {
+	return func(gm *GlobalMonitor) {
+		gm.nested = nested
+	}
+}
+
 func New(opts ...MonitorOption) Monitor {
 	monitor := &GlobalMonitor{
 		fields:   make(map[string]interface{}),
 		emitters: make([]*syncEmitter, 0),
 		// avoid unneeded nil checks
 		tracer: opentracing.NoopTracer{},
+		nested: true,
 	}
 	for _, opts := range opts {
 		opts(monitor)
@@ -101,6 +111,10 @@ func (gm *GlobalMonitor) UpdateFields(fields map[string]interface{}) {
 func (gm *GlobalMonitor) Record(event map[string]interface{}) {
 	for _, se := range gm.emitters {
 		se.mu.Lock()
+		// TODO: use fields
+		if gm.nested {
+			event = Nest(event)
+		}
 		se.emitter.Emit(event)
 		se.mu.Unlock()
 	}

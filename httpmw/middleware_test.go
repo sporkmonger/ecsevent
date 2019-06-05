@@ -50,11 +50,11 @@ func HealthCheckHandler(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, `{"status": "ok"}`)
 }
 
-func TestHealthCheckHandler(t *testing.T) {
+func TestHealthCheckHandlerUnnested(t *testing.T) {
 	assert := assert.New(t)
 
 	mock := &mockEmitter{events: make([]map[string]interface{}, 0)}
-	monitor := ecsevent.New(EmitToMock(mock))
+	monitor := ecsevent.New(EmitToMock(mock), ecsevent.NestEvents(false))
 	mh := NewHandler(monitor)
 
 	req, err := http.NewRequest("GET", "/health-check", nil)
@@ -86,6 +86,65 @@ func TestHealthCheckHandler(t *testing.T) {
 			"url.original":              "/health-check",
 			"url.path":                  "/health-check",
 			"user_agent.original":       "go-test/1.0",
+		}
+		assert.Equal(expectedEvent, mock.events[0])
+	}
+}
+
+func TestHealthCheckHandlerNested(t *testing.T) {
+	assert := assert.New(t)
+
+	mock := &mockEmitter{events: make([]map[string]interface{}, 0)}
+	monitor := ecsevent.New(EmitToMock(mock), ecsevent.NestEvents(true))
+	mh := NewHandler(monitor)
+
+	req, err := http.NewRequest("GET", "/health-check", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.RemoteAddr = "127.0.0.1:54321"
+	req.Header.Set("User-Agent", "go-test/1.0")
+
+	rr := httptest.NewRecorder()
+	handler := mh(http.HandlerFunc(HealthCheckHandler))
+
+	handler.ServeHTTP(rr, req)
+
+	assert.Equal(http.StatusOK, rr.Code)
+	assert.Equal(`{"status": "ok"}`, rr.Body.String())
+	assert.Len(mock.events, 1)
+	if len(mock.events) == 1 {
+		expectedEvent := map[string]interface{}{
+			"ecs": map[string]interface{}{
+				"version": "1.0.1",
+			},
+			"client": map[string]interface{}{
+				"ip":   "127.0.0.1",
+				"port": 54321,
+			},
+			"http": map[string]interface{}{
+				"request": map[string]interface{}{
+					"body": map[string]interface{}{
+						"bytes": int64(0),
+					},
+					"method": "GET",
+				},
+				"response": map[string]interface{}{
+					"body": map[string]interface{}{
+						"bytes": int64(16),
+					},
+					"status_code": 200,
+				},
+				"version": "1.1",
+			},
+			"url": map[string]interface{}{
+				"full":     "/health-check",
+				"original": "/health-check",
+				"path":     "/health-check",
+			},
+			"user_agent": map[string]interface{}{
+				"original": "go-test/1.0",
+			},
 		}
 		assert.Equal(expectedEvent, mock.events[0])
 	}
