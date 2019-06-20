@@ -99,6 +99,7 @@ const (
 	FieldFileMode                     = "file.mode"
 	FieldFileMTime                    = "file.mtime"
 	FieldFileOwner                    = "file.owner"
+	FieldFilePath                     = "file.path"
 	FieldFileSize                     = "file.size"
 	FieldFileTargetPath               = "file.target_path"
 	FieldFileType                     = "file.type"
