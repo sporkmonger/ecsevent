@@ -7,7 +7,7 @@ import (
 
 // Field name constants for the Elastic Common Schema.
 // See: https://www.elastic.co/guide/en/ecs/current/ecs-field-reference.html
-const (
+var (
 	FieldTimestamp                    = "@timestamp"
 	FieldLabels                       = "labels"
 	FieldTags                         = "tags"
