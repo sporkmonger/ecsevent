@@ -45,6 +45,19 @@ func (rw *responseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 	return nil, nil, fmt.Errorf("ResponseWriter does not implement the Hijacker interface")
 }
 
+// parseRemoteAddr takes a RemoteAddr, typically of the form ip:port and
+// returns only the IP portion.
+func parseRemoteAddr(hostport string) string {
+	colon := strings.IndexByte(hostport, ':')
+	if colon == -1 {
+		return hostport
+	}
+	if i := strings.IndexByte(hostport, ']'); i != -1 {
+		return strings.TrimPrefix(hostport[:i], "[")
+	}
+	return hostport[:colon]
+}
+
 var (
 	// This is a compile-time check to make sure our types correctly
 	// implement the interface:
@@ -90,12 +103,13 @@ func NewHandler(monitor ecsevent.Monitor) func(http.Handler) http.Handler {
 				ecsevent.FieldECSVersion:           "1.0.1",
 			})
 			if r.RemoteAddr != "" {
-				components := strings.SplitN(r.RemoteAddr, ":", 2)
+				ipComponent := parseRemoteAddr(r.RemoteAddr)
 				span.UpdateFields(map[string]interface{}{
-					ecsevent.FieldClientIP: components[0],
+					ecsevent.FieldClientIP: ipComponent,
 				})
-				if len(components) > 1 {
-					if port, err := strconv.Atoi(components[1]); err == nil {
+				colon := strings.LastIndexByte(r.RemoteAddr, ':')
+				if colon != -1 && len(r.RemoteAddr) > colon {
+					if port, err := strconv.Atoi(r.RemoteAddr[colon+1:]); err == nil {
 						span.UpdateFields(map[string]interface{}{
 							ecsevent.FieldClientPort: port,
 						})
