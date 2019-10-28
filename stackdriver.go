@@ -5,25 +5,25 @@ import (
 )
 
 var (
-	fieldStackDriverTimestamp               = "timestamp"
-	fieldStackDriverSeverity                = "severity"
-	fieldStackDriverHTTPRequestMethod       = "httpRequest.requestMethod"
-	fieldStackDriverHTTPRequestURL          = "httpRequest.requestUrl"
-	fieldStackDriverHTTPRequestSize         = "httpRequest.requestSize"
-	fieldStackDriverHTTPRequestStatus       = "httpRequest.status"       // response
-	fieldStackDriverHTTPRequestResponseSize = "httpRequest.responseSize" // response
-	fieldStackDriverHTTPRequestUserAgent    = "httpRequest.userAgent"
-	fieldStackDriverHTTPRequestRemoteIP     = "httpRequest.remoteIp"
-	fieldStackDriverHTTPRequestServerIP     = "httpRequest.serverIp"
-	fieldStackDriverHTTPRequestReferrer     = "httpRequest.referer"
-	fieldStackDriverHTTPRequestLatency      = "httpRequest.latency"
-	fieldStackDriverHTTPRequestProtocol     = "httpRequest.protocol"
+	fieldStackdriverTimestamp               = "timestamp"
+	fieldStackdriverSeverity                = "severity"
+	fieldStackdriverHTTPRequestMethod       = "httpRequest.requestMethod"
+	fieldStackdriverHTTPRequestURL          = "httpRequest.requestUrl"
+	fieldStackdriverHTTPRequestSize         = "httpRequest.requestSize"
+	fieldStackdriverHTTPRequestStatus       = "httpRequest.status"       // response
+	fieldStackdriverHTTPRequestResponseSize = "httpRequest.responseSize" // response
+	fieldStackdriverHTTPRequestUserAgent    = "httpRequest.userAgent"
+	fieldStackdriverHTTPRequestRemoteIP     = "httpRequest.remoteIp"
+	fieldStackdriverHTTPRequestServerIP     = "httpRequest.serverIp"
+	fieldStackdriverHTTPRequestReferrer     = "httpRequest.referer"
+	fieldStackdriverHTTPRequestLatency      = "httpRequest.latency"
+	fieldStackdriverHTTPRequestProtocol     = "httpRequest.protocol"
 )
 
-// appendStackDriver takes a map in ECS dotted notation and for each field
-// with a special value in StackDriver (e.g. 'severity'), it will apply the
+// appendStackdriver takes a map in ECS dotted notation and for each field
+// with a special value in Stackdriver (e.g. 'severity'), it will apply the
 // necessary transforms and inject these values into a new map.
-func appendStackDriver(entry map[string]interface{}) map[string]interface{} {
+func appendStackdriver(entry map[string]interface{}) map[string]interface{} {
 	newEntry := make(map[string]interface{})
 	for key, value := range entry {
 		// copy existing fields over unmodified
@@ -31,39 +31,39 @@ func appendStackDriver(entry map[string]interface{}) map[string]interface{} {
 
 		switch key {
 		case FieldTimestamp:
-			newEntry[fieldStackDriverTimestamp] = value
+			newEntry[fieldStackdriverTimestamp] = value
 		case FieldLogLevel:
 			if level, ok := value.(string); ok {
-				newEntry[fieldStackDriverSeverity] = stackDriverSeverity(level)
+				newEntry[fieldStackdriverSeverity] = stackdriverSeverity(level)
 			}
 		case FieldHTTPRequestMethod:
-			newEntry[fieldStackDriverHTTPRequestMethod] = value
+			newEntry[fieldStackdriverHTTPRequestMethod] = value
 		case FieldURLFull:
-			newEntry[fieldStackDriverHTTPRequestURL] = value
+			newEntry[fieldStackdriverHTTPRequestURL] = value
 		case FieldHTTPRequestBytes:
 			if bytes, ok := value.(int64); ok {
-				newEntry[fieldStackDriverHTTPRequestSize] = string(bytes)
+				newEntry[fieldStackdriverHTTPRequestSize] = string(bytes)
 			}
 		case FieldHTTPResponseStatusCode:
-			newEntry[fieldStackDriverHTTPRequestStatus] = value
+			newEntry[fieldStackdriverHTTPRequestStatus] = value
 		case FieldUserAgentOriginal:
-			newEntry[fieldStackDriverHTTPRequestUserAgent] = value
+			newEntry[fieldStackdriverHTTPRequestUserAgent] = value
 		case FieldHTTPRequestReferrer:
-			newEntry[fieldStackDriverHTTPRequestReferrer] = value
+			newEntry[fieldStackdriverHTTPRequestReferrer] = value
 		case FieldClientIP:
-			newEntry[fieldStackDriverHTTPRequestRemoteIP] = value
+			newEntry[fieldStackdriverHTTPRequestRemoteIP] = value
 		case FieldServerIP:
-			newEntry[fieldStackDriverHTTPRequestServerIP] = value
+			newEntry[fieldStackdriverHTTPRequestServerIP] = value
 		case FieldHTTPVersion:
 			if version, ok := value.(string); ok {
-				newEntry[fieldStackDriverHTTPRequestProtocol] = stackDriverHTTPProtocol(version)
+				newEntry[fieldStackdriverHTTPRequestProtocol] = stackdriverHTTPProtocol(version)
 			}
 		}
 	}
 	return newEntry
 }
 
-func stackDriverSeverity(level string) string {
+func stackdriverSeverity(level string) string {
 	// ECS doesn't specify accepted values for log.level
 	switch strings.ToLower(level) {
 	case "t":
@@ -147,7 +147,7 @@ func stackDriverSeverity(level string) string {
 	}
 }
 
-func stackDriverHTTPProtocol(version string) string {
+func stackdriverHTTPProtocol(version string) string {
 	// ECS uses just a version number
 	switch strings.ToLower(version) {
 	case "1.0":
