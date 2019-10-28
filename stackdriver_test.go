@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestAppendStackDriver(t *testing.T) {
+func TestAppendStackdriver(t *testing.T) {
 	tcs := []struct {
 		name           string
 		input          map[string]interface{}
@@ -56,13 +56,13 @@ func TestAppendStackDriver(t *testing.T) {
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
 			assert := assert.New(t)
-			output := appendStackDriver(tc.input)
+			output := appendStackdriver(tc.input)
 			assert.Equal(tc.expectedOutput, output)
 		})
 	}
 }
 
-func TestStackDriverSeverity(t *testing.T) {
+func TestStackdriverSeverity(t *testing.T) {
 	tcs := []struct {
 		level            string
 		expectedSeverity string
@@ -93,7 +93,7 @@ func TestStackDriverSeverity(t *testing.T) {
 	for _, tc := range tcs {
 		t.Run(tc.level, func(t *testing.T) {
 			assert := assert.New(t)
-			output := stackDriverSeverity(tc.level)
+			output := stackdriverSeverity(tc.level)
 			assert.Equal(tc.expectedSeverity, output)
 		})
 	}

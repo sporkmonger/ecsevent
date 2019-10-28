@@ -56,13 +56,13 @@ func NestEvents(nested bool) MonitorOption {
 	}
 }
 
-// StackDriver controls whether ECS events will automatically convert to
-// the special fields expected by StackDriver.
+// Stackdriver controls whether ECS events will automatically convert to
+// the special fields expected by Stackdriver.
 //
-// The original ECS values will still be logged, but new StackDriver values
+// The original ECS values will still be logged, but new Stackdriver values
 // will also be created in the expected fields with any necessary transforms
 // applied.
-func StackDriver(stackdriver bool) MonitorOption {
+func Stackdriver(stackdriver bool) MonitorOption {
 	return func(gm *GlobalMonitor) {
 		gm.stackdriver = stackdriver
 	}
@@ -105,6 +105,15 @@ func (gm *GlobalMonitor) SetTracer(tracer opentracing.Tracer) {
 	gm.tracer = tracer
 }
 
+// SetStackdriverLogging enables or disables translation of ECS events into
+// the fields needed by Stackdriver.
+func (gm *GlobalMonitor) SetStackdriverLogging(enabled bool) {
+	gm.mu.Lock()
+	defer gm.mu.Unlock()
+	gm.stackdriver = enabled
+}
+
+// Fields returns the fields currently set on the monitor.
 func (gm *GlobalMonitor) Fields() map[string]interface{} {
 	gm.mu.Lock()
 	defer gm.mu.Unlock()
@@ -123,12 +132,13 @@ func (gm *GlobalMonitor) UpdateFields(fields map[string]interface{}) {
 	}
 }
 
+// Record takes a series of fields and records an event.
 func (gm *GlobalMonitor) Record(event map[string]interface{}) {
 	for _, se := range gm.emitters {
 		se.mu.Lock()
 		// TODO: use fields
 		if gm.stackdriver {
-			event = appendStackDriver(event)
+			event = appendStackdriver(event)
 		}
 		if gm.nested {
 			event = Nest(event)
