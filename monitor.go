@@ -27,10 +27,11 @@ func (se syncEmitter) Emit(event map[string]interface{}) {
 type GlobalMonitor struct {
 	// Fields are the globally scoped fields applied to all events recorded by
 	// the logger.
-	fields   map[string]interface{}
-	emitters []*syncEmitter
-	tracer   opentracing.Tracer
-	nested   bool
+	fields      map[string]interface{}
+	emitters    []*syncEmitter
+	tracer      opentracing.Tracer
+	nested      bool
+	stackdriver bool
 	// mu gates everything in this struct, including changes to the emitter
 	// list but not events being emitted by the emitters.
 	mu sync.Mutex
@@ -55,6 +56,20 @@ func NestEvents(nested bool) MonitorOption {
 	}
 }
 
+// StackDriver controls whether ECS events will automatically convert to
+// the special fields expected by StackDriver.
+//
+// The original ECS values will still be logged, but new StackDriver values
+// will also be created in the expected fields with any necessary transforms
+// applied.
+func StackDriver(stackdriver bool) MonitorOption {
+	return func(gm *GlobalMonitor) {
+		gm.stackdriver = stackdriver
+	}
+}
+
+// New creates a new GlobalMonitor with the given MonitorOption functions
+// applied.
 func New(opts ...MonitorOption) Monitor {
 	monitor := &GlobalMonitor{
 		fields:   make(map[string]interface{}),
@@ -112,6 +127,9 @@ func (gm *GlobalMonitor) Record(event map[string]interface{}) {
 	for _, se := range gm.emitters {
 		se.mu.Lock()
 		// TODO: use fields
+		if gm.stackdriver {
+			event = appendStackDriver(event)
+		}
 		if gm.nested {
 			event = Nest(event)
 		}

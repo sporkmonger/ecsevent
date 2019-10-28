@@ -89,6 +89,9 @@ func NewHandler(monitor ecsevent.Monitor) func(http.Handler) http.Handler {
 			fullURL := &url.URL{
 				Host: r.Host,
 			}
+			if forwardedHost := r.Header.Get("X-Forwarded-Host"); forwardedHost != "" {
+				fullURL.Host = forwardedHost
+			}
 			if r.URL != nil {
 				fullURL.Path = r.URL.Path
 				fullURL.RawQuery = r.URL.RawQuery
@@ -148,6 +151,7 @@ func NewHandler(monitor ecsevent.Monitor) func(http.Handler) http.Handler {
 				})
 			}
 			if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
+				// TODO: support Forwarded header
 				ips := []string{}
 				for _, rawIP := range strings.Split(xff, ",") {
 					ip := net.ParseIP(rawIP)
