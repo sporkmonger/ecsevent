@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/sporkmonger/ecsevent"
 )
@@ -85,6 +86,7 @@ func FromRequest(r *http.Request) *ecsevent.SpanMonitor {
 func NewHandler(monitor ecsevent.Monitor) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			timeStart := time.Now()
 			span := ecsevent.NewSpanMonitorFromParent(monitor)
 			fullURL := &url.URL{
 				Host: r.Host,
@@ -173,9 +175,14 @@ func NewHandler(monitor ecsevent.Monitor) func(http.Handler) http.Handler {
 				status:         200,
 			}
 			next.ServeHTTP(wrw, r)
+			timeEnd := time.Now()
+			durationNS := int64(float64(timeEnd.Sub(timeStart)) / float64(time.Nanosecond))
 			span.UpdateFields(map[string]interface{}{
 				ecsevent.FieldHTTPResponseStatusCode: wrw.status,
 				ecsevent.FieldHTTPResponseBodyBytes:  int64(wrw.size),
+				ecsevent.FieldEventStart:             timeStart,
+				ecsevent.FieldEventEnd:               timeEnd,
+				ecsevent.FieldEventDuration:          durationNS,
 			})
 			span.Finish()
 		})

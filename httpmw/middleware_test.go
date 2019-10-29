@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/sporkmonger/ecsevent"
 
@@ -53,6 +54,8 @@ func HealthCheckHandler(w http.ResponseWriter, r *http.Request) {
 func TestHealthCheckHandlerUnnested(t *testing.T) {
 	assert := assert.New(t)
 
+	testStart := time.Now()
+
 	mock := &mockEmitter{events: make([]map[string]interface{}, 0)}
 	monitor := ecsevent.New(EmitToMock(mock), ecsevent.NestEvents(false))
 	mh := NewHandler(monitor)
@@ -68,6 +71,8 @@ func TestHealthCheckHandlerUnnested(t *testing.T) {
 	handler := mh(http.HandlerFunc(HealthCheckHandler))
 
 	handler.ServeHTTP(rr, req)
+
+	testEnd := time.Now()
 
 	assert.Equal(http.StatusOK, rr.Code)
 	assert.Equal(`{"status": "ok"}`, rr.Body.String())
@@ -87,12 +92,32 @@ func TestHealthCheckHandlerUnnested(t *testing.T) {
 			"url.path":                  "/health-check",
 			"user_agent.original":       "go-test/1.0",
 		}
+		assert.Greater(mock.events[0]["event.duration"], int64(0))
+		assert.Less(mock.events[0]["event.duration"], int64(1000000))
+		delete(mock.events[0], "event.duration") // can't predict this value
+		if eventStart, ok := mock.events[0]["event.start"].(time.Time); ok {
+			assert.True(eventStart.After(testStart))
+			assert.True(eventStart.Before(testEnd))
+			if eventEnd, ok := mock.events[0]["event.end"].(time.Time); ok {
+				assert.True(eventEnd.After(testStart))
+				assert.True(eventEnd.Before(testEnd))
+				assert.True(eventEnd.After(eventStart))
+			} else {
+				assert.Fail("event.end was not time.Time")
+			}
+		} else {
+			assert.Fail("event.start was not time.Time")
+		}
+		delete(mock.events[0], "event.start") // can't predict this value
+		delete(mock.events[0], "event.end")   // can't predict this value
 		assert.Equal(expectedEvent, mock.events[0])
 	}
 }
 
 func TestHealthCheckHandlerNested(t *testing.T) {
 	assert := assert.New(t)
+
+	testStart := time.Now()
 
 	mock := &mockEmitter{events: make([]map[string]interface{}, 0)}
 	monitor := ecsevent.New(EmitToMock(mock), ecsevent.NestEvents(true))
@@ -109,6 +134,8 @@ func TestHealthCheckHandlerNested(t *testing.T) {
 	handler := mh(http.HandlerFunc(HealthCheckHandler))
 
 	handler.ServeHTTP(rr, req)
+
+	testEnd := time.Now()
 
 	assert.Equal(http.StatusOK, rr.Code)
 	assert.Equal(`{"status": "ok"}`, rr.Body.String())
@@ -146,6 +173,23 @@ func TestHealthCheckHandlerNested(t *testing.T) {
 				"original": "go-test/1.0",
 			},
 		}
+		eventMap := mock.events[0]["event"].(map[string]interface{})
+		assert.Greater(eventMap["duration"], int64(0))
+		assert.Less(eventMap["duration"], int64(1000000))
+		if eventStart, ok := eventMap["start"].(time.Time); ok {
+			assert.True(eventStart.After(testStart))
+			assert.True(eventStart.Before(testEnd))
+			if eventEnd, ok := eventMap["end"].(time.Time); ok {
+				assert.True(eventEnd.After(testStart))
+				assert.True(eventEnd.Before(testEnd))
+				assert.True(eventEnd.After(eventStart))
+			} else {
+				assert.Fail("event.end was not time.Time")
+			}
+		} else {
+			assert.Fail("event.start was not time.Time")
+		}
+		delete(mock.events[0], "event") // can't predict its values
 		assert.Equal(expectedEvent, mock.events[0])
 	}
 }
