@@ -14,8 +14,9 @@ type Emitter struct {
 // Emit takes a map of ECS fields and values and emits the event into the
 // Beeline.
 func (e *Emitter) Emit(event map[string]interface{}) {
+	unnested := ecsevent.Unnest(event)
 	he := e.Client.NewEvent()
-	he.Add(event)
+	he.Add(unnested)
 	he.Send()
 }
 
