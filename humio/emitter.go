@@ -55,6 +55,9 @@ func (e *Emitter) Emit(event map[string]interface{}) {
 			Timeout: 2 * time.Minute,
 		}
 	}
+	if e.Server == "" {
+		e.Server = "https://cloud.humio.com"
+	}
 	if e.endpoint == nil {
 		e.endpoint, _ = url.Parse(e.Server + "/api/v1/ingest/humio-structured")
 	}
