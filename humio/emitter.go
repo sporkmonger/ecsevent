@@ -74,12 +74,17 @@ func (e *Emitter) Emit(event map[string]interface{}) {
 			timestamp, _ = time.Parse(time.RFC3339Nano, timestampString)
 		}
 	}
-	ir := &ingestRequest{
-		Tags: e.Tags,
-		Events: []ingestEvent{
-			ingestEvent{
-				Timestamp:  timestamp,
-				Attributes: event,
+	if timestamp.IsZero() {
+		timestamp = time.Now()
+	}
+	ir := []ingestRequest{
+		ingestRequest{
+			Tags: e.Tags,
+			Events: []ingestEvent{
+				ingestEvent{
+					Timestamp:  timestamp,
+					Attributes: event,
+				},
 			},
 		},
 	}
@@ -89,7 +94,10 @@ func (e *Emitter) Emit(event map[string]interface{}) {
 	// TODO: Emit _really_ needs to return an error
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+e.IngestToken)
-	e.client.Do(req)
+	resp, err := e.client.Do(req)
+	if err == nil && resp != nil {
+		defer resp.Body.Close()
+	}
 }
 
 var (
