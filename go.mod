@@ -15,7 +15,7 @@ require (
 	github.com/honeycombio/libhoney-go v1.12.2
 	github.com/klauspost/compress v1.9.1 // indirect
 	github.com/opentracing/opentracing-go v1.1.0
-	github.com/rs/zerolog v1.16.0
+	github.com/rs/zerolog v1.17.2
 	github.com/stretchr/testify v1.4.0
 	github.com/vmihailenco/msgpack v4.0.4+incompatible // indirect
 	google.golang.org/appengine v1.6.5 // indirect
