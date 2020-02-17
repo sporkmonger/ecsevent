@@ -10,15 +10,17 @@ import (
 func TestNewSpanMonitor(t *testing.T) {
 	mock := &mockEmitter{events: make([]map[string]interface{}, 0)}
 	tcs := []struct {
-		name                   string
-		options                []MonitorOption
-		events                 []map[string]interface{}
-		expectedEventsRecorded int
+		name                      string
+		options                   []MonitorOption
+		events                    []map[string]interface{}
+		expectedEventsRecorded    int
+		expectedSubeventsRecorded int
 	}{
 		{
 			"no options set, no events sent",
 			nil,
 			[]map[string]interface{}{},
+			0,
 			0,
 		},
 		{
@@ -30,19 +32,23 @@ func TestNewSpanMonitor(t *testing.T) {
 				},
 			},
 			0,
+			0,
 		},
 		{
 			"mock emitter, no events sent",
 			[]MonitorOption{
 				EmitToMock(mock),
+				NestEvents(false),
 			},
 			[]map[string]interface{}{},
 			1,
+			0,
 		},
 		{
 			"mock emitter, 1 event sent",
 			[]MonitorOption{
 				EmitToMock(mock),
+				NestEvents(false),
 			},
 			[]map[string]interface{}{
 				map[string]interface{}{
@@ -50,11 +56,13 @@ func TestNewSpanMonitor(t *testing.T) {
 				},
 			},
 			1,
+			1,
 		},
 		{
 			"mock emitter, 3 events sent",
 			[]MonitorOption{
 				EmitToMock(mock),
+				NestEvents(false),
 			},
 			[]map[string]interface{}{
 				map[string]interface{}{
@@ -68,6 +76,7 @@ func TestNewSpanMonitor(t *testing.T) {
 				},
 			},
 			1,
+			3,
 		},
 	}
 
@@ -83,6 +92,15 @@ func TestNewSpanMonitor(t *testing.T) {
 			}
 			sm.Finish()
 			assert.Len(mock.events, tc.expectedEventsRecorded)
+			if len(mock.events) >= 1 {
+				event := mock.events[0]
+				subevents := event[FieldEventSubevents]
+				if subevents == nil {
+					assert.Equal(0, tc.expectedSubeventsRecorded)
+				} else {
+					assert.Len(event[FieldEventSubevents], tc.expectedSubeventsRecorded)
+				}
+			}
 		})
 	}
 }

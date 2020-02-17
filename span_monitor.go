@@ -51,12 +51,12 @@ func (sm *SpanMonitor) Fields() map[string]interface{} {
 }
 
 // Parent returns the parent logger.
-func (sm SpanMonitor) Parent() Monitor {
+func (sm *SpanMonitor) Parent() Monitor {
 	return sm.parent
 }
 
 // UpdateFields updates the SpanMonitor's field set.
-func (sm SpanMonitor) UpdateFields(fields map[string]interface{}) {
+func (sm *SpanMonitor) UpdateFields(fields map[string]interface{}) {
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
 	if sm.fields == nil {
@@ -68,7 +68,7 @@ func (sm SpanMonitor) UpdateFields(fields map[string]interface{}) {
 }
 
 // Record takes a series of fields and records an event.
-func (sm SpanMonitor) Record(event map[string]interface{}) {
+func (sm *SpanMonitor) Record(event map[string]interface{}) {
 	if sm.fields == nil {
 		sm.mu.Lock()
 		sm.fields = make(map[string]interface{})
@@ -89,7 +89,7 @@ func (sm SpanMonitor) Record(event map[string]interface{}) {
 	// TODO: if configured to flush immediately, emit to parent, otherwise emit on Finish
 }
 
-func (sm SpanMonitor) Finish() {
+func (sm *SpanMonitor) Finish() {
 	if sm.span != nil {
 		records := make([]opentracing.LogRecord, 0)
 		// TODO: generate log records for each subevent
