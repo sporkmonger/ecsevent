@@ -24,9 +24,10 @@ type SpanMonitor struct {
 	fields map[string]interface{}
 
 	// The opentracing span, if any, associated with this SpanMonitor.
-	span   opentracing.Span
-	parent Monitor
-	mu     *sync.RWMutex
+	span       opentracing.Span
+	parent     Monitor
+	suppressed bool
+	mu         *sync.RWMutex
 }
 
 var (
@@ -67,6 +68,13 @@ func (sm *SpanMonitor) UpdateFields(fields map[string]interface{}) {
 	}
 }
 
+// Suppress causes this span monitor to emit nothing.
+func (sm *SpanMonitor) Suppress() {
+	sm.mu.Lock()
+	defer sm.mu.Unlock()
+	sm.suppressed = true
+}
+
 // Record takes a series of fields and records an event.
 func (sm *SpanMonitor) Record(event map[string]interface{}) {
 	if sm.fields == nil {
@@ -85,21 +93,27 @@ func (sm *SpanMonitor) Record(event map[string]interface{}) {
 	}
 	sm.mu.Lock()
 	sm.subevents = append(sm.subevents, merged)
-	sm.mu.Unlock()
+	defer sm.mu.Unlock()
+	if sm.suppressed {
+		return
+	}
 	// TODO: if configured to flush immediately, emit to parent, otherwise emit on Finish
 }
 
 func (sm *SpanMonitor) Finish() {
+	sm.mu.Lock()
+	defer sm.mu.Unlock()
+	if sm.suppressed {
+		return
+	}
 	if sm.span != nil {
 		records := make([]opentracing.LogRecord, 0)
 		// TODO: generate log records for each subevent
 		opts := opentracing.FinishOptions{LogRecords: records}
 		sm.span.FinishWithOptions(opts)
 	}
-	sm.mu.Lock()
 	if len(sm.subevents) > 0 {
 		sm.fields[sm.SubeventsField] = sm.subevents
 	}
-	sm.mu.Unlock()
 	sm.parent.Record(sm.fields)
 }
