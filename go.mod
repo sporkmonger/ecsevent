@@ -16,7 +16,7 @@ require (
 	github.com/klauspost/compress v1.9.1 // indirect
 	github.com/opentracing/opentracing-go v1.1.0
 	github.com/rs/zerolog v1.18.0
-	github.com/stretchr/testify v1.4.0
+	github.com/stretchr/testify v1.5.1
 	github.com/vmihailenco/msgpack v4.0.4+incompatible // indirect
 	google.golang.org/appengine v1.6.5 // indirect
 	gopkg.in/alexcesaro/statsd.v2 v2.0.0 // indirect
