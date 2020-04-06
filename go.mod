@@ -12,7 +12,7 @@ require (
 	github.com/facebookgo/subset v0.0.0-20150612182917-8dac2c3c4870 // indirect
 	github.com/golang/protobuf v1.3.2 // indirect
 	github.com/google/go-cmp v0.3.1 // indirect
-	github.com/honeycombio/libhoney-go v1.12.2
+	github.com/honeycombio/libhoney-go v1.12.4
 	github.com/klauspost/compress v1.9.1 // indirect
 	github.com/opentracing/opentracing-go v1.1.0
 	github.com/rs/zerolog v1.18.0
