@@ -220,8 +220,8 @@ func TestOpenTracing(t *testing.T) {
 	req.RemoteAddr = "127.0.0.1:54321"
 	req.Header.Set("User-Agent", "go-test/1.0")
 
-	parentSpan := opentracing.StartSpan("parent_span")
-	opentracing.GlobalTracer().Inject(
+	parentSpan := tracer.StartSpan("parent_span")
+	tracer.Inject(
 		parentSpan.Context(),
 		opentracing.HTTPHeaders,
 		opentracing.HTTPHeadersCarrier(req.Header))
@@ -291,8 +291,8 @@ func TestOpenTracingWithJaeger(t *testing.T) {
 	req.RemoteAddr = "127.0.0.1:54321"
 	req.Header.Set("User-Agent", "go-test/1.0")
 
-	span := opentracing.StartSpan("parent_span")
-	opentracing.GlobalTracer().Inject(
+	span := tracer.StartSpan("parent_span")
+	tracer.Inject(
 		span.Context(),
 		opentracing.HTTPHeaders,
 		opentracing.HTTPHeadersCarrier(req.Header))
@@ -306,4 +306,32 @@ func TestOpenTracingWithJaeger(t *testing.T) {
 	assert.Equal(`{"status": "ok"}`, rr.Body.String())
 
 	assert.Equal(reporter.SpansSubmitted(), 1, "there should be only one submitted span")
+}
+
+func TestOpenTracingWithNopMonitor(t *testing.T) {
+	assert := assert.New(t)
+
+	monitor := &ecsevent.NopMonitor{}
+	mh := NewHandler(monitor)
+
+	req, err := http.NewRequest("GET", "/health-check", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.RemoteAddr = "127.0.0.1:54321"
+	req.Header.Set("User-Agent", "go-test/1.0")
+
+	span := opentracing.StartSpan("parent_span")
+	opentracing.GlobalTracer().Inject(
+		span.Context(),
+		opentracing.HTTPHeaders,
+		opentracing.HTTPHeadersCarrier(req.Header))
+
+	rr := httptest.NewRecorder()
+	handler := mh(http.HandlerFunc(HealthCheckHandler))
+
+	handler.ServeHTTP(rr, req)
+
+	assert.Equal(http.StatusOK, rr.Code)
+	assert.Equal(`{"status": "ok"}`, rr.Body.String())
 }

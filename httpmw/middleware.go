@@ -98,7 +98,15 @@ func NewHandler(monitor ecsevent.Monitor) func(http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			timeStart := time.Now()
 
-			tracer := monitor.Root().Tracer()
+			// Obtain the tracer to use from the root, if available.
+			// Default to a NoopTracer if unavailable.
+			var tracer opentracing.Tracer
+			root := monitor.Root()
+			if root != nil {
+				tracer = root.Tracer()
+			} else {
+				tracer = opentracing.NoopTracer{}
+			}
 
 			var opentracingSpan opentracing.Span
 			wireContext, _ := tracer.Extract(
