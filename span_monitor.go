@@ -72,6 +72,32 @@ func (sm *SpanMonitor) Parent() Monitor {
 	return sm.parent
 }
 
+// maxDepth prevents infinite loops if a cycle is created or
+// if a span monitor becomes its own parent.
+const maxDepth = 100
+
+// Root returns the root monitor for the monitor tree.
+// If the top level monitor is not a RootMonitor, it will return nil.
+func (sm *SpanMonitor) Root() *RootMonitor {
+	monitor := sm.Parent()
+	depth := 0
+	for monitor != nil {
+		depth++
+		if depth > maxDepth {
+			break
+		}
+
+		if gm, ok := monitor.(*RootMonitor); ok && gm != nil {
+			return gm
+		} else if sm, ok := monitor.(*SpanMonitor); ok && sm != nil {
+			monitor = sm.Parent()
+		} else {
+			break
+		}
+	}
+	return nil
+}
+
 // UpdateFields updates the SpanMonitor's field set.
 func (sm *SpanMonitor) UpdateFields(fields map[string]interface{}) {
 	sm.mu.Lock()

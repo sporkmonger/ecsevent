@@ -85,12 +85,13 @@ func TestNewSpanMonitor(t *testing.T) {
 			assert := assert.New(t)
 			// reset mock's events to empty
 			mock.events = make([]map[string]interface{}, 0)
-			gm := New(tc.options...)
-			sm := NewSpanMonitorFromParent(gm)
+			rm := New(tc.options...)
+			sm := NewSpanMonitorFromParent(rm)
 			for _, event := range tc.events {
 				sm.Record(event)
 			}
 			sm.Finish()
+			// assert.Equal(rm, sm.Root())
 			assert.Len(mock.events, tc.expectedEventsRecorded)
 			if len(mock.events) >= 1 {
 				event := mock.events[0]
@@ -113,8 +114,8 @@ func TestSpanMonitorConcurrency(t *testing.T) {
 
 	t.Run("span monitor concurrency", func(t *testing.T) {
 		assert := assert.New(t)
-		gm := New(EmitToMock(mock))
-		sm := NewSpanMonitorFromParent(gm)
+		rm := New(EmitToMock(mock))
+		sm := NewSpanMonitorFromParent(rm)
 		wg := sync.WaitGroup{}
 
 		// This reliably triggers a failure if mutexes are not set up correctly
@@ -126,9 +127,32 @@ func TestSpanMonitorConcurrency(t *testing.T) {
 					sm.Record(event)
 				}
 				sm.Finish()
+				// assert.Equal(rm, sm.Root())
 			}()
 		}
 		wg.Wait()
 		assert.Equal(10, len(mock.events))
+	})
+}
+
+func TestSpanMonitorNesting(t *testing.T) {
+	mock := &mockEmitter{events: make([]map[string]interface{}, 0)}
+	event := map[string]interface{}{
+		FieldMessage: "test message",
+	}
+
+	t.Run("span monitor nesting", func(t *testing.T) {
+		assert := assert.New(t)
+		rm := New(EmitToMock(mock))
+		sm1 := NewSpanMonitorFromParent(rm)
+		sm2 := NewSpanMonitorFromParent(sm1)
+		sm2.Record(event)
+		sm2.Finish()
+		sm1.Finish()
+
+		assert.Equal(rm, sm1.Root())
+		assert.Equal(rm, sm2.Root())
+		assert.Equal(sm1, sm2.Parent())
+		assert.Equal(1, len(mock.events))
 	})
 }

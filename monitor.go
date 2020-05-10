@@ -24,7 +24,7 @@ func (se syncEmitter) Emit(event map[string]interface{}) {
 	se.emitter.Emit(event)
 }
 
-type GlobalMonitor struct {
+type RootMonitor struct {
 	// Fields are the globally scoped fields applied to all events recorded by
 	// the logger.
 	fields      map[string]interface{}
@@ -41,17 +41,17 @@ var (
 	// This is a compile-time check to make sure our types correctly
 	// implement the interface:
 	// https://medium.com/@matryer/c167afed3aae
-	_ Monitor = &GlobalMonitor{}
+	_ Monitor = &RootMonitor{}
 	_ Emitter = syncEmitter{}
 )
 
-// MonitorOption configure a GlobalMonitor as it's being initialized.
-type MonitorOption func(*GlobalMonitor)
+// MonitorOption configure a RootMonitor as it's being initialized.
+type MonitorOption func(*RootMonitor)
 
 // NestEvents controls whether event fields should be nested or left
 // in dot-notated format.
 func NestEvents(nested bool) MonitorOption {
-	return func(gm *GlobalMonitor) {
+	return func(gm *RootMonitor) {
 		gm.nested = nested
 	}
 }
@@ -63,21 +63,21 @@ func NestEvents(nested bool) MonitorOption {
 // will also be created in the expected fields with any necessary transforms
 // applied.
 func Stackdriver(stackdriver bool) MonitorOption {
-	return func(gm *GlobalMonitor) {
+	return func(gm *RootMonitor) {
 		gm.stackdriver = stackdriver
 	}
 }
 
-// New creates a new GlobalMonitor with the given MonitorOption functions
+// New creates a new RootMonitor with the given MonitorOption functions
 // applied.
 func New(opts ...MonitorOption) Monitor {
-	return NewGlobalMonitor(opts...)
+	return NewRootMonitor(opts...)
 }
 
-// NewGlobalMonitor creates a new GlobalMonitor with the given MonitorOption functions
+// NewRootMonitor creates a new RootMonitor with the given MonitorOption functions
 // applied.
-func NewGlobalMonitor(opts ...MonitorOption) *GlobalMonitor {
-	monitor := &GlobalMonitor{
+func NewRootMonitor(opts ...MonitorOption) *RootMonitor {
+	monitor := &RootMonitor{
 		fields:   make(map[string]interface{}),
 		emitters: make([]*syncEmitter, 0),
 		// avoid unneeded nil checks
@@ -90,22 +90,22 @@ func NewGlobalMonitor(opts ...MonitorOption) *GlobalMonitor {
 	return monitor
 }
 
-// AppendEmitter adds an emitter to the GlobalMonitor's emitter list.
+// AppendEmitter adds an emitter to the RootMonitor's emitter list.
 //
 // This function is intended to be used inside of a MonitorOption function
 // and generally should not be used outside of initialization.
-func (gm *GlobalMonitor) AppendEmitter(emitter Emitter) {
+func (gm *RootMonitor) AppendEmitter(emitter Emitter) {
 	gm.mu.Lock()
 	defer gm.mu.Unlock()
 	gm.emitters = append(gm.emitters, &syncEmitter{emitter: emitter})
 }
 
-// SetTracer sets the tracer for the GlobalMonitor. Unlike emitters, there
+// SetTracer sets the tracer for the RootMonitor. Unlike emitters, there
 // can be only one tracer.
 //
 // This function is intended to be used inside of a MonitorOption function
 // and generally should not be used outside of initialization.
-func (gm *GlobalMonitor) SetTracer(tracer opentracing.Tracer) {
+func (gm *RootMonitor) SetTracer(tracer opentracing.Tracer) {
 	gm.mu.Lock()
 	defer gm.mu.Unlock()
 	gm.tracer = tracer
@@ -113,21 +113,21 @@ func (gm *GlobalMonitor) SetTracer(tracer opentracing.Tracer) {
 
 // SetStackdriverLogging enables or disables translation of ECS events into
 // the fields needed by Stackdriver.
-func (gm *GlobalMonitor) SetStackdriverLogging(enabled bool) {
+func (gm *RootMonitor) SetStackdriverLogging(enabled bool) {
 	gm.mu.Lock()
 	defer gm.mu.Unlock()
 	gm.stackdriver = enabled
 }
 
 // Fields returns the fields currently set on the monitor.
-func (gm *GlobalMonitor) Fields() map[string]interface{} {
+func (gm *RootMonitor) Fields() map[string]interface{} {
 	gm.mu.Lock()
 	defer gm.mu.Unlock()
 	return gm.fields
 }
 
-// UpdateFields updates the GlobalMonitor's Field set.
-func (gm *GlobalMonitor) UpdateFields(fields map[string]interface{}) {
+// UpdateFields updates the RootMonitor's Field set.
+func (gm *RootMonitor) UpdateFields(fields map[string]interface{}) {
 	gm.mu.Lock()
 	defer gm.mu.Unlock()
 	if gm.fields == nil {
@@ -139,7 +139,7 @@ func (gm *GlobalMonitor) UpdateFields(fields map[string]interface{}) {
 }
 
 // Record takes a series of fields and records an event.
-func (gm *GlobalMonitor) Record(event map[string]interface{}) {
+func (gm *RootMonitor) Record(event map[string]interface{}) {
 	for _, se := range gm.emitters {
 		se.mu.Lock()
 		// TODO: use fields
