@@ -85,7 +85,15 @@ func FromRequest(r *http.Request) *ecsevent.SpanMonitor {
 
 // NewHandler uses a Monitor to inject SpanMonitors into request
 // contexts.
-func NewHandler(monitor *ecsevent.RootMonitor) func(http.Handler) http.Handler {
+func NewHandler(monitor ecsevent.Monitor) func(http.Handler) http.Handler {
+	if monitor == nil {
+		monitor = &ecsevent.NopMonitor{}
+	} else if _, ok := monitor.(*ecsevent.SpanMonitor); ok {
+		monitor.Record(map[string]interface{}{
+			ecsevent.FieldLogLevel: "warn",
+			ecsevent.FieldMessage:  "ecsevent middleware expects a root or nop monitor",
+		})
+	}
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			timeStart := time.Now()
