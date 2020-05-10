@@ -20,12 +20,12 @@ func (me *mockEmitter) Events() []map[string]interface{} {
 }
 
 func EmitToMock(mock *mockEmitter) MonitorOption {
-	return func(gm *GlobalMonitor) {
+	return func(gm *RootMonitor) {
 		gm.AppendEmitter(mock)
 	}
 }
 
-func TestNewGlobalMonitor(t *testing.T) {
+func TestNewRootMonitor(t *testing.T) {
 	mock := &mockEmitter{events: make([]map[string]interface{}, 0)}
 	tcs := []struct {
 		name                   string
@@ -103,7 +103,7 @@ func TestNewGlobalMonitor(t *testing.T) {
 	}
 }
 
-func TestGlobalMonitorConcurrency(t *testing.T) {
+func TestRootMonitorConcurrency(t *testing.T) {
 	mock := &mockEmitter{events: make([]map[string]interface{}, 0)}
 	event := map[string]interface{}{
 		FieldMessage: "test message",

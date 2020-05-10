@@ -7,7 +7,7 @@ import (
 // ctxKey is an unexported key for retrieving a logger from a context
 type ctxKey struct{}
 
-func (gm *GlobalMonitor) WithContext(ctx context.Context) context.Context {
+func (gm *RootMonitor) WithContext(ctx context.Context) context.Context {
 	return NewContext(ctx, gm)
 }
 

@@ -85,7 +85,7 @@ func FromRequest(r *http.Request) *ecsevent.SpanMonitor {
 
 // NewHandler uses a Monitor to inject SpanMonitors into request
 // contexts.
-func NewHandler(monitor *ecsevent.GlobalMonitor) func(http.Handler) http.Handler {
+func NewHandler(monitor *ecsevent.RootMonitor) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			timeStart := time.Now()

@@ -20,7 +20,7 @@ import (
 func TestNewHandlerParent(t *testing.T) {
 	assert := assert.New(t)
 	monitor := ecsevent.New()
-	mh := NewHandler(monitor.(*ecsevent.GlobalMonitor))
+	mh := NewHandler(monitor.(*ecsevent.RootMonitor))
 	h := mh(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		sm := FromRequest(r)
 		assert.NotNil(sm)
@@ -44,7 +44,7 @@ func (me *mockEmitter) Events() []map[string]interface{} {
 }
 
 func EmitToMock(mock *mockEmitter) ecsevent.MonitorOption {
-	return func(gm *ecsevent.GlobalMonitor) {
+	return func(gm *ecsevent.RootMonitor) {
 		gm.AppendEmitter(mock)
 	}
 }
@@ -63,7 +63,7 @@ func TestHealthCheckHandlerUnnested(t *testing.T) {
 
 	mock := &mockEmitter{events: make([]map[string]interface{}, 0)}
 	monitor := ecsevent.New(EmitToMock(mock), ecsevent.NestEvents(false))
-	mh := NewHandler(monitor.(*ecsevent.GlobalMonitor))
+	mh := NewHandler(monitor.(*ecsevent.RootMonitor))
 
 	req, err := http.NewRequest("GET", "/health-check", nil)
 	if err != nil {
@@ -126,7 +126,7 @@ func TestHealthCheckHandlerNested(t *testing.T) {
 
 	mock := &mockEmitter{events: make([]map[string]interface{}, 0)}
 	monitor := ecsevent.New(EmitToMock(mock), ecsevent.NestEvents(true))
-	mh := NewHandler(monitor.(*ecsevent.GlobalMonitor))
+	mh := NewHandler(monitor.(*ecsevent.RootMonitor))
 
 	req, err := http.NewRequest("GET", "/health-check", nil)
 	if err != nil {
@@ -210,7 +210,7 @@ func TestOpenTracing(t *testing.T) {
 
 	mock := &mockEmitter{events: make([]map[string]interface{}, 0)}
 	monitor := ecsevent.New(EmitToMock(mock), ecsevent.NestEvents(true))
-	mh := NewHandler(monitor.(*ecsevent.GlobalMonitor))
+	mh := NewHandler(monitor.(*ecsevent.RootMonitor))
 
 	req, err := http.NewRequest("GET", "/health-check", nil)
 	if err != nil {
@@ -282,7 +282,7 @@ func TestOpenTracingWithJaeger(t *testing.T) {
 
 	mock := &mockEmitter{events: make([]map[string]interface{}, 0)}
 	monitor := ecsevent.New(EmitToMock(mock), ecsevent.NestEvents(true))
-	mh := NewHandler(monitor.(*ecsevent.GlobalMonitor))
+	mh := NewHandler(monitor.(*ecsevent.RootMonitor))
 
 	req, err := http.NewRequest("GET", "/health-check", nil)
 	if err != nil {
