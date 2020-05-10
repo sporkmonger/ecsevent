@@ -71,6 +71,12 @@ func Stackdriver(stackdriver bool) MonitorOption {
 // New creates a new GlobalMonitor with the given MonitorOption functions
 // applied.
 func New(opts ...MonitorOption) Monitor {
+	return NewGlobalMonitor(opts...)
+}
+
+// NewGlobalMonitor creates a new GlobalMonitor with the given MonitorOption functions
+// applied.
+func NewGlobalMonitor(opts ...MonitorOption) *GlobalMonitor {
 	monitor := &GlobalMonitor{
 		fields:   make(map[string]interface{}),
 		emitters: make([]*syncEmitter, 0),
