@@ -10,6 +10,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go/ext"
 	"github.com/sporkmonger/ecsevent"
 )
 
@@ -83,11 +85,24 @@ func FromRequest(r *http.Request) *ecsevent.SpanMonitor {
 
 // NewHandler uses a Monitor to inject SpanMonitors into request
 // contexts.
-func NewHandler(monitor ecsevent.Monitor) func(http.Handler) http.Handler {
+func NewHandler(monitor *ecsevent.GlobalMonitor) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			timeStart := time.Now()
-			span := ecsevent.NewSpanMonitorFromParent(monitor)
+
+			var opentracingSpan opentracing.Span
+			wireContext, _ := opentracing.GlobalTracer().Extract(
+				opentracing.HTTPHeaders,
+				opentracing.HTTPHeadersCarrier(r.Header))
+
+			// Create the span referring to the RPC client if available.
+			// If wireContext == nil, a root span will be created.
+			opentracingSpan = opentracing.StartSpan(
+				fmt.Sprintf("%s %s", r.Method, r.Host),
+				ext.RPCServerOption(wireContext))
+
+			span := ecsevent.NewSpanMonitorFromParent(monitor, ecsevent.WithOpenTracingSpan(opentracingSpan))
+
 			fullURL := &url.URL{
 				Host: r.Host,
 			}
@@ -166,7 +181,7 @@ func NewHandler(monitor ecsevent.Monitor) func(http.Handler) http.Handler {
 				})
 			}
 
-			r = r.WithContext(span.WithContext(r.Context()))
+			r = r.WithContext(span.WithContext(opentracing.ContextWithSpan(r.Context(), opentracingSpan)))
 			// Record status and size, using 200 as our default status
 			// Passes everything through to the parent response writer after
 			// recording status and size.

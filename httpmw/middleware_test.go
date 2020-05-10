@@ -15,7 +15,7 @@ import (
 func TestNewHandlerParent(t *testing.T) {
 	assert := assert.New(t)
 	monitor := ecsevent.New()
-	mh := NewHandler(monitor)
+	mh := NewHandler(monitor.(*ecsevent.GlobalMonitor))
 	h := mh(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		sm := FromRequest(r)
 		assert.NotNil(sm)
@@ -58,7 +58,7 @@ func TestHealthCheckHandlerUnnested(t *testing.T) {
 
 	mock := &mockEmitter{events: make([]map[string]interface{}, 0)}
 	monitor := ecsevent.New(EmitToMock(mock), ecsevent.NestEvents(false))
-	mh := NewHandler(monitor)
+	mh := NewHandler(monitor.(*ecsevent.GlobalMonitor))
 
 	req, err := http.NewRequest("GET", "/health-check", nil)
 	if err != nil {
@@ -121,7 +121,7 @@ func TestHealthCheckHandlerNested(t *testing.T) {
 
 	mock := &mockEmitter{events: make([]map[string]interface{}, 0)}
 	monitor := ecsevent.New(EmitToMock(mock), ecsevent.NestEvents(true))
-	mh := NewHandler(monitor)
+	mh := NewHandler(monitor.(*ecsevent.GlobalMonitor))
 
 	req, err := http.NewRequest("GET", "/health-check", nil)
 	if err != nil {
