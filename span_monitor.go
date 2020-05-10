@@ -37,14 +37,30 @@ var (
 	_ Monitor = &SpanMonitor{}
 )
 
-func NewSpanMonitorFromParent(m Monitor) *SpanMonitor {
-	return &SpanMonitor{
+// SpanMonitorOption configure a GlobalMonitor as it's being initialized.
+type SpanMonitorOption func(*SpanMonitor)
+
+// WithOpenTracingSpan associates an opentracing span with the span monitor.
+func WithOpenTracingSpan(span opentracing.Span) SpanMonitorOption {
+	return func(sm *SpanMonitor) {
+		sm.span = span
+	}
+}
+
+// NewSpanMonitorFromParent creates a new
+func NewSpanMonitorFromParent(m Monitor, opts ...SpanMonitorOption) *SpanMonitor {
+	monitor := &SpanMonitor{
 		mu:             &sync.RWMutex{},
 		parent:         m,
 		fields:         make(map[string]interface{}),
 		subevents:      make([]map[string]interface{}, 0),
 		SubeventsField: FieldEventSubevents,
 	}
+	for _, opts := range opts {
+		opts(monitor)
+	}
+	// TODO: if m is also a SpanMonitor, connect the opentracing spans together if non-nil
+	return monitor
 }
 
 func (sm *SpanMonitor) Fields() map[string]interface{} {

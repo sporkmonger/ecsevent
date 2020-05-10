@@ -7,15 +7,20 @@ import (
 	"testing"
 	"time"
 
+	"github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go/mocktracer"
 	"github.com/sporkmonger/ecsevent"
 
 	"github.com/stretchr/testify/assert"
+
+	"github.com/uber/jaeger-client-go"
+	jaegercfg "github.com/uber/jaeger-client-go/config"
 )
 
 func TestNewHandlerParent(t *testing.T) {
 	assert := assert.New(t)
 	monitor := ecsevent.New()
-	mh := NewHandler(monitor)
+	mh := NewHandler(monitor.(*ecsevent.GlobalMonitor))
 	h := mh(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		sm := FromRequest(r)
 		assert.NotNil(sm)
@@ -58,7 +63,7 @@ func TestHealthCheckHandlerUnnested(t *testing.T) {
 
 	mock := &mockEmitter{events: make([]map[string]interface{}, 0)}
 	monitor := ecsevent.New(EmitToMock(mock), ecsevent.NestEvents(false))
-	mh := NewHandler(monitor)
+	mh := NewHandler(monitor.(*ecsevent.GlobalMonitor))
 
 	req, err := http.NewRequest("GET", "/health-check", nil)
 	if err != nil {
@@ -121,7 +126,7 @@ func TestHealthCheckHandlerNested(t *testing.T) {
 
 	mock := &mockEmitter{events: make([]map[string]interface{}, 0)}
 	monitor := ecsevent.New(EmitToMock(mock), ecsevent.NestEvents(true))
-	mh := NewHandler(monitor)
+	mh := NewHandler(monitor.(*ecsevent.GlobalMonitor))
 
 	req, err := http.NewRequest("GET", "/health-check", nil)
 	if err != nil {
@@ -192,4 +197,113 @@ func TestHealthCheckHandlerNested(t *testing.T) {
 		delete(mock.events[0], "event") // can't predict its values
 		assert.Equal(expectedEvent, mock.events[0])
 	}
+}
+
+func TestOpenTracing(t *testing.T) {
+	assert := assert.New(t)
+
+	tracer := mocktracer.New()
+	opentracing.SetGlobalTracer(tracer)
+
+	testStart := time.Now()
+	time.Sleep(1 * time.Nanosecond)
+
+	mock := &mockEmitter{events: make([]map[string]interface{}, 0)}
+	monitor := ecsevent.New(EmitToMock(mock), ecsevent.NestEvents(true))
+	mh := NewHandler(monitor.(*ecsevent.GlobalMonitor))
+
+	req, err := http.NewRequest("GET", "/health-check", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Host = "www.example.com"
+	req.RemoteAddr = "127.0.0.1:54321"
+	req.Header.Set("User-Agent", "go-test/1.0")
+
+	parentSpan := opentracing.StartSpan("parent_span")
+	opentracing.GlobalTracer().Inject(
+		parentSpan.Context(),
+		opentracing.HTTPHeaders,
+		opentracing.HTTPHeadersCarrier(req.Header))
+
+	rr := httptest.NewRecorder()
+	handler := mh(http.HandlerFunc(HealthCheckHandler))
+
+	handler.ServeHTTP(rr, req)
+
+	time.Sleep(1 * time.Nanosecond)
+	testEnd := time.Now()
+
+	assert.Equal(http.StatusOK, rr.Code)
+	assert.Equal(`{"status": "ok"}`, rr.Body.String())
+
+	parentSpan.Finish()
+
+	finishedSpans := tracer.FinishedSpans()
+	assert.Len(finishedSpans, 2, "both parent and child spans should be finished")
+	if len(finishedSpans) != 1 {
+		return
+	}
+	mockedSpan := finishedSpans[0]
+	mockedParentSpan := finishedSpans[1]
+
+	assert.True(mockedSpan.StartTime.After(testStart))
+	assert.True(mockedSpan.StartTime.Before(testEnd))
+	assert.True(mockedSpan.FinishTime.After(testStart))
+	assert.True(mockedSpan.FinishTime.Before(testEnd))
+
+	assert.NotEqual(0, mockedSpan.ParentID)
+	assert.Equal(mockedParentSpan.SpanContext.SpanID, mockedSpan.ParentID)
+	assert.Equal("GET www.example.com", mockedSpan.OperationName)
+}
+
+func TestOpenTracingWithJaeger(t *testing.T) {
+	assert := assert.New(t)
+
+	cfg := jaegercfg.Configuration{
+		ServiceName: "test_service",
+		Sampler: &jaegercfg.SamplerConfig{
+			Type:  jaeger.SamplerTypeConst,
+			Param: 1,
+		},
+		Reporter: &jaegercfg.ReporterConfig{
+			LogSpans: true,
+		},
+	}
+
+	reporter := jaeger.NewInMemoryReporter()
+	tracer, closer, err := cfg.NewTracer(jaegercfg.Reporter(reporter))
+	assert.NoError(err)
+	if err != nil {
+		return
+	}
+	opentracing.SetGlobalTracer(tracer)
+	defer closer.Close()
+
+	mock := &mockEmitter{events: make([]map[string]interface{}, 0)}
+	monitor := ecsevent.New(EmitToMock(mock), ecsevent.NestEvents(true))
+	mh := NewHandler(monitor.(*ecsevent.GlobalMonitor))
+
+	req, err := http.NewRequest("GET", "/health-check", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.RemoteAddr = "127.0.0.1:54321"
+	req.Header.Set("User-Agent", "go-test/1.0")
+
+	span := opentracing.StartSpan("parent_span")
+	opentracing.GlobalTracer().Inject(
+		span.Context(),
+		opentracing.HTTPHeaders,
+		opentracing.HTTPHeadersCarrier(req.Header))
+
+	rr := httptest.NewRecorder()
+	handler := mh(http.HandlerFunc(HealthCheckHandler))
+
+	handler.ServeHTTP(rr, req)
+
+	assert.Equal(http.StatusOK, rr.Code)
+	assert.Equal(`{"status": "ok"}`, rr.Body.String())
+
+	assert.Equal(reporter.SpansSubmitted(), 1, "there should be only one submitted span")
 }
