@@ -10,6 +10,7 @@ type Monitor interface {
 	Fields() map[string]interface{}
 	UpdateFields(map[string]interface{})
 	Record(map[string]interface{})
+	Root() *RootMonitor
 }
 
 type syncEmitter struct {
@@ -51,8 +52,8 @@ type MonitorOption func(*RootMonitor)
 // NestEvents controls whether event fields should be nested or left
 // in dot-notated format.
 func NestEvents(nested bool) MonitorOption {
-	return func(gm *RootMonitor) {
-		gm.nested = nested
+	return func(rm *RootMonitor) {
+		rm.nested = nested
 	}
 }
 
@@ -63,8 +64,8 @@ func NestEvents(nested bool) MonitorOption {
 // will also be created in the expected fields with any necessary transforms
 // applied.
 func Stackdriver(stackdriver bool) MonitorOption {
-	return func(gm *RootMonitor) {
-		gm.stackdriver = stackdriver
+	return func(rm *RootMonitor) {
+		rm.stackdriver = stackdriver
 	}
 }
 
@@ -90,14 +91,19 @@ func NewRootMonitor(opts ...MonitorOption) *RootMonitor {
 	return monitor
 }
 
+// Root returns itself.
+func (rm *RootMonitor) Root() *RootMonitor {
+	return rm
+}
+
 // AppendEmitter adds an emitter to the RootMonitor's emitter list.
 //
 // This function is intended to be used inside of a MonitorOption function
 // and generally should not be used outside of initialization.
-func (gm *RootMonitor) AppendEmitter(emitter Emitter) {
-	gm.mu.Lock()
-	defer gm.mu.Unlock()
-	gm.emitters = append(gm.emitters, &syncEmitter{emitter: emitter})
+func (rm *RootMonitor) AppendEmitter(emitter Emitter) {
+	rm.mu.Lock()
+	defer rm.mu.Unlock()
+	rm.emitters = append(rm.emitters, &syncEmitter{emitter: emitter})
 }
 
 // SetTracer sets the tracer for the RootMonitor. Unlike emitters, there
@@ -105,48 +111,48 @@ func (gm *RootMonitor) AppendEmitter(emitter Emitter) {
 //
 // This function is intended to be used inside of a MonitorOption function
 // and generally should not be used outside of initialization.
-func (gm *RootMonitor) SetTracer(tracer opentracing.Tracer) {
-	gm.mu.Lock()
-	defer gm.mu.Unlock()
-	gm.tracer = tracer
+func (rm *RootMonitor) SetTracer(tracer opentracing.Tracer) {
+	rm.mu.Lock()
+	defer rm.mu.Unlock()
+	rm.tracer = tracer
 }
 
 // SetStackdriverLogging enables or disables translation of ECS events into
 // the fields needed by Stackdriver.
-func (gm *RootMonitor) SetStackdriverLogging(enabled bool) {
-	gm.mu.Lock()
-	defer gm.mu.Unlock()
-	gm.stackdriver = enabled
+func (rm *RootMonitor) SetStackdriverLogging(enabled bool) {
+	rm.mu.Lock()
+	defer rm.mu.Unlock()
+	rm.stackdriver = enabled
 }
 
 // Fields returns the fields currently set on the monitor.
-func (gm *RootMonitor) Fields() map[string]interface{} {
-	gm.mu.Lock()
-	defer gm.mu.Unlock()
-	return gm.fields
+func (rm *RootMonitor) Fields() map[string]interface{} {
+	rm.mu.Lock()
+	defer rm.mu.Unlock()
+	return rm.fields
 }
 
 // UpdateFields updates the RootMonitor's Field set.
-func (gm *RootMonitor) UpdateFields(fields map[string]interface{}) {
-	gm.mu.Lock()
-	defer gm.mu.Unlock()
-	if gm.fields == nil {
-		gm.fields = make(map[string]interface{})
+func (rm *RootMonitor) UpdateFields(fields map[string]interface{}) {
+	rm.mu.Lock()
+	defer rm.mu.Unlock()
+	if rm.fields == nil {
+		rm.fields = make(map[string]interface{})
 	}
 	for k, v := range fields {
-		gm.fields[k] = v
+		rm.fields[k] = v
 	}
 }
 
 // Record takes a series of fields and records an event.
-func (gm *RootMonitor) Record(event map[string]interface{}) {
-	for _, se := range gm.emitters {
+func (rm *RootMonitor) Record(event map[string]interface{}) {
+	for _, se := range rm.emitters {
 		se.mu.Lock()
 		// TODO: use fields
-		if gm.stackdriver {
+		if rm.stackdriver {
 			event = appendStackdriver(event)
 		}
-		if gm.nested {
+		if rm.nested {
 			event = Nest(event)
 		}
 		se.emitter.Emit(event)
