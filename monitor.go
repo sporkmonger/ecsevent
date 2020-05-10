@@ -69,6 +69,13 @@ func Stackdriver(stackdriver bool) MonitorOption {
 	}
 }
 
+// Tracer associates a Monitor with an opentracing tracer.
+func Tracer(tracer opentracing.Tracer) MonitorOption {
+	return func(rm *RootMonitor) {
+		rm.SetTracer(tracer)
+	}
+}
+
 // New creates a new RootMonitor with the given MonitorOption functions
 // applied.
 func New(opts ...MonitorOption) Monitor {
@@ -115,6 +122,14 @@ func (rm *RootMonitor) SetTracer(tracer opentracing.Tracer) {
 	rm.mu.Lock()
 	defer rm.mu.Unlock()
 	rm.tracer = tracer
+}
+
+// Tracer returns the tracer for the RootMonitor. Unlike emitters, there
+// can be only one tracer.
+func (rm *RootMonitor) Tracer() opentracing.Tracer {
+	rm.mu.Lock()
+	defer rm.mu.Unlock()
+	return rm.tracer
 }
 
 // SetStackdriverLogging enables or disables translation of ECS events into

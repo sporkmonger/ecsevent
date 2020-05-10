@@ -209,7 +209,7 @@ func TestOpenTracing(t *testing.T) {
 	time.Sleep(1 * time.Nanosecond)
 
 	mock := &mockEmitter{events: make([]map[string]interface{}, 0)}
-	monitor := ecsevent.New(EmitToMock(mock), ecsevent.NestEvents(true))
+	monitor := ecsevent.New(EmitToMock(mock), ecsevent.NestEvents(true), ecsevent.Tracer(tracer))
 	mh := NewHandler(monitor.(*ecsevent.RootMonitor))
 
 	req, err := http.NewRequest("GET", "/health-check", nil)
@@ -281,7 +281,7 @@ func TestOpenTracingWithJaeger(t *testing.T) {
 	defer closer.Close()
 
 	mock := &mockEmitter{events: make([]map[string]interface{}, 0)}
-	monitor := ecsevent.New(EmitToMock(mock), ecsevent.NestEvents(true))
+	monitor := ecsevent.New(EmitToMock(mock), ecsevent.NestEvents(true), ecsevent.Tracer(tracer))
 	mh := NewHandler(monitor.(*ecsevent.RootMonitor))
 
 	req, err := http.NewRequest("GET", "/health-check", nil)

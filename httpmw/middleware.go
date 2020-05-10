@@ -98,14 +98,16 @@ func NewHandler(monitor ecsevent.Monitor) func(http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			timeStart := time.Now()
 
+			tracer := monitor.Root().Tracer()
+
 			var opentracingSpan opentracing.Span
-			wireContext, _ := opentracing.GlobalTracer().Extract(
+			wireContext, _ := tracer.Extract(
 				opentracing.HTTPHeaders,
 				opentracing.HTTPHeadersCarrier(r.Header))
 
 			// Create the span referring to the RPC client if available.
 			// If wireContext == nil, a root span will be created.
-			opentracingSpan = opentracing.StartSpan(
+			opentracingSpan = tracer.StartSpan(
 				fmt.Sprintf("%s %s", r.Method, r.Host),
 				ext.RPCServerOption(wireContext))
 
