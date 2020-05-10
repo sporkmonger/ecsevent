@@ -33,3 +33,8 @@ func (nm *NopMonitor) UpdateFields(event map[string]interface{}) {}
 func Nop() *NopMonitor {
 	return &NopMonitor{}
 }
+
+// Root returns nil.
+func (nm *NopMonitor) Root() *RootMonitor {
+	return nil
+}

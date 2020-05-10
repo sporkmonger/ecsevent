@@ -20,8 +20,8 @@ func (me *mockEmitter) Events() []map[string]interface{} {
 }
 
 func EmitToMock(mock *mockEmitter) MonitorOption {
-	return func(gm *RootMonitor) {
-		gm.AppendEmitter(mock)
+	return func(rm *RootMonitor) {
+		rm.AppendEmitter(mock)
 	}
 }
 
