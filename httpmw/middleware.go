@@ -91,7 +91,7 @@ func NewHandler(monitor ecsevent.Monitor) func(http.Handler) http.Handler {
 	} else if _, ok := monitor.(*ecsevent.SpanMonitor); ok {
 		monitor.Record(map[string]interface{}{
 			ecsevent.FieldLogLevel: "warn",
-			ecsevent.FieldMessage:  "ecsevent middleware expects a root or nop monitor",
+			ecsevent.FieldMessage:  "ecsevent middleware may have disconnected traces if given a span monitor",
 		})
 	}
 	return func(next http.Handler) http.Handler {
