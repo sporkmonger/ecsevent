@@ -7,7 +7,7 @@ require (
 	github.com/honeycombio/libhoney-go v1.12.4
 	github.com/opentracing/opentracing-go v1.1.0
 	github.com/rs/zerolog v1.18.0
-	github.com/stretchr/testify v1.5.1
+	github.com/stretchr/testify v1.6.1
 	github.com/uber/jaeger-client-go v2.23.1+incompatible
 	github.com/uber/jaeger-lib v2.2.0+incompatible // indirect
 	go.uber.org/atomic v1.6.0 // indirect
